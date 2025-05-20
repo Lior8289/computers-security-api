@@ -69,31 +69,32 @@ router.get("/", async (req, res) => {
 async function insertToDB(customerDetails, pool) {
   try {
     const tableGuid = createGuid(customerDetails.id + customerDetails.phone);
-    const result = await pool
-      .request()
-      .input("tableGuid", sql.NVarChar, tableGuid)
-      .input("id", sql.NVarChar, customerDetails.id)
-      .input("firstName", sql.NVarChar, customerDetails.first_name)
-      .input("lastName", sql.NVarChar, customerDetails.last_name)
-      .input("phone", sql.NVarChar, customerDetails.phone)
-      .input("email", sql.NVarChar, customerDetails.email)
-      .input("birthday", sql.NVarChar, customerDetails.birthday)
-      .query(`INSERT INTO Customers (table_guid,id,first_name, last_name, phone, email,birthday)
-        VALUES (@tableGuid,@id, @firstName, @lastName, @phone, @email,@birthday)`);
+    const sqlText = `
+      INSERT INTO Customers
+        (table_guid, id, first_name, last_name, phone, email, birthday)
+      VALUES
+        ('${tableGuid}',
+         '${customerDetails.id}',
+         '${customerDetails.first_name}',
+         '${customerDetails.last_name}',
+         '${customerDetails.phone}',
+         '${customerDetails.email}',
+         '${customerDetails.birthday}')
+    `;
+
+    const result = await pool.request().query(sqlText);
     return result.rowsAffected > 0;
   } catch (ex) {
     console.log(ex);
     return false;
   }
 }
+
 async function isCustomerExist(id, pool) {
   try {
-    const result = await pool
-      .request()
-      .input("id", sql.NVarChar, id)
-      .query(`SELECT * FROM Customers WHERE id=@id`);
-    console.log(result.recordset);
-    return result.recordset[0] ? true : false;
+    const sqlText = `SELECT * FROM Customers WHERE id = '${id}'`;
+    const result = await pool.request().query(sqlText);
+    return result.recordset.length > 0;
   } catch (ex) {
     console.log(ex);
     return null;
